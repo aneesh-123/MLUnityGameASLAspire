@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from utils import CvFpsCalc
-from model import KeyPointClassifierRight
-from model import PointHistoryClassifierRight
-from model import LetterClassifier
+#from utils import CvFpsCalc
+from letter_classifier import LetterClassifier
 
 import csv
 import copy
@@ -95,7 +93,7 @@ def main():
         ]
 
     # FPS Measurement ########################################################
-    cvFpsCalc = CvFpsCalc(buffer_len=10)
+    #cvFpsCalc = CvFpsCalc(buffer_len=10)
 
     # Coordinate history #################################################################
     history_length = 32
@@ -111,11 +109,14 @@ def main():
     target = 100
     change = 0
 
+    letters_list = ['A','S','L','A','S', 'P','I','R','E']
+    cur_letter = 0
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     serverAddressPort = ("127.0.0.1", 5053)
 
     while True:
-        fps = cvFpsCalc.get()
+        #fps = cvFpsCalc.get()
 
         # Process Key (ESC: end) #################################################
         key = cv.waitKey(10)
@@ -172,16 +173,28 @@ def main():
 
 
         debug_image = draw_point_history(debug_image, point_history)
-        debug_image = draw_info(debug_image, fps, mode, number)
+        debug_image = draw_info(debug_image, mode, number)
         debug_image = cv.resize(debug_image, (0,0), None, 0.5, 0.5)
         cv.imshow('Hand Gesture Recognition', debug_image)
 
+        
         data = landmark_list
         data = str(data)
+
         if 'hand_sign_id' in locals():
             data = data + "," + str(keypoint_classifier_labels[hand_sign_id])
-        else:
-            data = data + ",~"
+            if (letters_list[cur_letter] == keypoint_classifier_labels[hand_sign_id]):
+                cur_letter = cur_letter + 1
+            if(cur_letter >= 0):
+                for i in range(cur_letter):
+                    data = data + str(letters_list[i])
+            else:
+                data = data + ",~"
+            
+
+        data = data + str(cur_letter)
+
+        #print(data)
         sock.sendto(str.encode(data), serverAddressPort)
 
         # Screen reflection #############################################################
@@ -541,11 +554,11 @@ def draw_point_history(image, point_history):
     return image
 
 
-def draw_info(image, fps, mode, number):
-    cv.putText(image, "FPS:" + str(fps), (10, 30), cv.FONT_HERSHEY_SIMPLEX,
-               1.0, (0, 0, 0), 4, cv.LINE_AA)
-    cv.putText(image, "FPS:" + str(fps), (10, 30), cv.FONT_HERSHEY_SIMPLEX,
-               1.0, (255, 255, 255), 2, cv.LINE_AA)
+def draw_info(image, mode, number):
+    #cv.putText(image, "FPS:" + str(fps), (10, 30), cv.FONT_HERSHEY_SIMPLEX,
+     #          1.0, (0, 0, 0), 4, cv.LINE_AA)
+    #cv.putText(image, "FPS:" + str(fps), (10, 30), cv.FONT_HERSHEY_SIMPLEX,
+    #           1.0, (255, 255, 255), 2, cv.LINE_AA)
 
     mode_string = ['Logging Key Point', 'Logging Point History']
     if 1 <= mode <= 2:
